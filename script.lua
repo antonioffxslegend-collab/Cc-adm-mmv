@@ -132,7 +132,11 @@ if PASSWORD_ENABLED then
 
     local attempts = 0
     local function checkPassword()
-        if inputBox.Text == PASSWORD then
+        -- Remove spaces and lowercase for comparison
+        local typed = string.lower(string.gsub(inputBox.Text, "%s", ""))
+        local correct = string.lower(string.gsub(PASSWORD, "%s", ""))
+
+        if typed == correct then
             passwordCorrect = true
             feedback.Text = "♡ Correct password! Welcome ♡"
             feedback.TextColor3 = Color3.fromRGB(100, 200, 130)
@@ -617,6 +621,60 @@ end)
 -- ============= MAGIC CARPET =============
 SCRIPTS.magicCarpet = [==[
 loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Open-Source-227632"))()
+]==]
+
+-- ============= KUDO FAKE BOMB =============
+SCRIPTS.kudoFakeBomb = [==[
+local Players = game:GetService("Players")
+
+local player = Players.LocalPlayer
+local backpack = player:WaitForChild("Backpack")
+
+local function createBomb(number)
+	local bomb = Instance.new("Tool")
+	bomb.Name = "Fake Bomb " .. number
+	bomb.RequiresHandle = true
+	bomb.CanBeDropped = false
+
+	local handle = Instance.new("Part")
+	handle.Name = "Handle"
+	handle.Shape = Enum.PartType.Ball
+	handle.Size = Vector3.new(1.5, 1.5, 1.5)
+	handle.Color = Color3.fromRGB(0, 0, 0)
+	handle.Material = Enum.Material.SmoothPlastic
+	handle.CanCollide = false
+	handle.Massless = true
+	handle.Parent = bomb
+
+	local flyForce
+
+	bomb.Equipped:Connect(function()
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+
+		if root then
+			flyForce = Instance.new("BodyVelocity")
+			flyForce.Name = "FakeBombFly"
+			flyForce.Velocity = Vector3.new(0, 50, 0)
+			flyForce.MaxForce = Vector3.new(0, math.huge, 0)
+			flyForce.Parent = root
+		end
+	end)
+
+	bomb.Unequipped:Connect(function()
+		if flyForce then
+			flyForce:Destroy()
+			flyForce = nil
+		end
+	end)
+
+	bomb.Parent = backpack
+end
+
+createBomb(1)
+createBomb(2)
+
+print("Kudo Fake Bomb spawned!")
 ]==]
 
 -- ============= RECOLOR SCOPE (GUN CUSTOMIZER) =============
@@ -1451,8 +1509,9 @@ closeBtn.ZIndex = 4
 closeBtn.Parent = header
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(1, 0)
 
+-- ♡ Tab bar (taller to fit 5 tabs) ♡
 local tabBar = Instance.new("Frame")
-tabBar.Size = UDim2.new(0, 150, 0, 200)
+tabBar.Size = UDim2.new(0, 150, 0, 245)
 tabBar.Position = UDim2.new(0, 12, 0, 60)
 tabBar.BackgroundColor3 = PINK_LIGHT
 tabBar.BackgroundTransparency = 0.3
@@ -1517,12 +1576,12 @@ local themeButtons = {}
 
 local function createTabButton(name, order)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -16, 0, 38)
+    btn.Size = UDim2.new(1, -16, 0, 34)
     btn.BackgroundColor3 = WHITE
     btn.BackgroundTransparency = 0.4
     btn.Text = name
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 13
+    btn.TextSize = 12
     btn.TextColor3 = TEXT_DARK
     btn.AutoButtonColor = false
     btn.LayoutOrder = order
@@ -1623,10 +1682,11 @@ local function buildPage(tabName, titleText, descText, scriptKey, order)
     end)
 end
 
-buildPage("Water Bow ♡",     "Water Bow ♡",     "Crossbow of the Sea + water jump ♡",  "waterBow",     1)
-buildPage("Coil Gears ♡",    "Coil Gears ♡",    "Sonic Coils with mini panel ♡",       "coilGears",    2)
-buildPage("Magic Carpet ♡",  "Magic Carpet ♡",  "Flying magic carpet ♡",               "magicCarpet",  3)
-buildPage("Recolor Scope ♡", "Recolor Scope ♡", "Gun Customizer (antonmvtwin) ♡",      "recolorScope", 4)
+buildPage("Water Bow ♡",      "Water Bow ♡",      "Crossbow of the Sea + water jump ♡",  "waterBow",      1)
+buildPage("Coil Gears ♡",     "Coil Gears ♡",     "Sonic Coils with mini panel ♡",       "coilGears",     2)
+buildPage("Magic Carpet ♡",   "Magic Carpet ♡",   "Flying magic carpet ♡",               "magicCarpet",   3)
+buildPage("Kudo Fake Bomb ♡", "Kudo Fake Bomb ♡", "Fake bombs that launch you up ♡",     "kudoFakeBomb",  4)
+buildPage("Recolor Scope ♡",  "Recolor Scope ♡",  "Gun Customizer (antonmvtwin) ♡",      "recolorScope",  5)
 
 pages["Water Bow ♡"].page.Visible = true
 pages["Water Bow ♡"].btn.BackgroundTransparency = 0
