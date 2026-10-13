@@ -1,4 +1,4 @@
-local PASSWORD="ccmmv123"
+local PASSWORD="ccAdmMmv@Panel#2025!"
 local PASSWORD_ENABLED=true
 local Players=game:GetService("Players")
 local UserInputService=game:GetService("UserInputService")
@@ -243,7 +243,12 @@ local player=Players.LocalPlayer
 local PlayerGui=player:WaitForChild("PlayerGui")
 local DEFAULT_SPEED=16
 local DEFAULT_GRAVITY=196.2
-local COLORS={Red={Main=Color3.fromRGB(255,0,0),Dark=Color3.fromRGB(180,25,25)},Blue={Main=Color3.fromRGB(0,150,255),Dark=Color3.fromRGB(0,90,190)},Green={Main=Color3.fromRGB(0,255,100),Dark=Color3.fromRGB(20,180,50)},Purple={Main=Color3.fromRGB(200,0,255),Dark=Color3.fromRGB(130,25,190)}}
+local COLORS={Red={Main=Color3.fromRGB(255,0,0),Dark=Color3.fromRGB(180,25,25)},Blue={Main=Color3.fromRGB(0,150,255),Dark=Color3.fromRGB(0,90,190)},Green={Main=Color3.fromRGB(0,255,100),Dark=Color3.fromRGB(20,180,50)},Purple={Main=Color3.fromRGB(200,0,255),Dark=Color3.fromRGB(130,25,190)},Rainbow={Main=Color3.fromRGB(255,105,180),Dark=Color3.fromRGB(150,60,180)}}
+local function makeRainbowSequence()
+local keys={}
+for i=0,6 do table.insert(keys,ColorSequenceKeypoint.new(i/6,Color3.fromHSV(i/6,1,1))) end
+return ColorSequence.new(keys)
+end
 local Screen=Instance.new("ScreenGui")
 Screen.Name="MolasSonic"
 Screen.ResetOnSpawn=false
@@ -302,7 +307,7 @@ local Layout=Instance.new("UIListLayout",Content)
 Layout.Padding=UDim.new(0,10)
 OpenButton.MouseButton1Click:Connect(function() Panel.Visible=not Panel.Visible end)
 CloseButton.MouseButton1Click:Connect(function() Panel.Visible=false end)
-local function CreateCoil(Name,ColorData,EquipEffect,UnequipEffect)
+local function CreateCoil(Name,ColorData,EquipEffect,UnequipEffect,isRainbow)
 local Backpack=player:FindFirstChild("Backpack")
 if not Backpack then return end
 if Backpack:FindFirstChild(Name) then Backpack[Name]:Destroy() end
@@ -316,12 +321,13 @@ Handle.Name="Handle"
 Handle.Size=Vector3.new(0.1,0.1,0.1)
 Handle.Transparency=1
 Handle.Parent=Tool
+local rings={}
 local Model=Instance.new("Model",Handle)
 for i=1,4 do
 local Ring=Instance.new("Part",Model)
 Ring.Shape=Enum.PartType.Cylinder
 Ring.Size=Vector3.new(0.12,1.2,1.2)
-Ring.Color=ColorData.Main
+if isRainbow then Ring.Color=Color3.fromHSV((i-1)/4,1,1) else Ring.Color=ColorData.Main end
 Ring.Material=Enum.Material.Neon
 Ring.CFrame=Handle.CFrame*CFrame.new(0,0,(i-2.5)*0.22)*CFrame.Angles(0,math.rad(90),0)
 local Weld=Instance.new("WeldConstraint",Ring)
@@ -332,6 +338,7 @@ Highlight.Adornee=Ring
 Highlight.FillTransparency=1
 Highlight.OutlineColor=Color3.new(0,0,0)
 Highlight.OutlineTransparency=0
+table.insert(rings,Ring)
 end
 local A0=Instance.new("Attachment",Handle)
 A0.Position=Vector3.new(0,0.6,0)
@@ -340,18 +347,34 @@ A1.Position=Vector3.new(0,-0.6,0)
 local Trail=Instance.new("Trail",Handle)
 Trail.Attachment0=A0
 Trail.Attachment1=A1
-Trail.Color=ColorSequence.new(ColorData.Main)
-Trail.Lifetime=0.4
+if isRainbow then Trail.Color=makeRainbowSequence() Trail.Lifetime=0.8 else Trail.Color=ColorSequence.new(ColorData.Main) Trail.Lifetime=0.4 end
 Trail.Enabled=false
 local Particles=Instance.new("ParticleEmitter",Handle)
-Particles.Color=ColorSequence.new(ColorData.Main)
+if isRainbow then Particles.Color=makeRainbowSequence() Particles.LightEmission=1 Particles.Rate=80 else Particles.Color=ColorSequence.new(ColorData.Main) Particles.Rate=40 end
 Particles.Size=NumberSequence.new(0.3,0)
-Particles.Rate=40
 Particles.Enabled=false
-Tool.Equipped:Connect(function() Trail.Enabled=true Particles.Enabled=true EquipEffect() end)
-Tool.Unequipped:Connect(function() Trail.Enabled=false Particles.Enabled=false UnequipEffect() end)
+local rainbowActive=false
+Tool.Equipped:Connect(function()
+Trail.Enabled=true
+Particles.Enabled=true
+EquipEffect()
+if isRainbow then
+rainbowActive=true
+task.spawn(function()
+local hue=0
+while rainbowActive and Tool.Parent do
+hue=(hue+0.02)%1
+for idx,ring in ipairs(rings) do
+if ring and ring.Parent then ring.Color=Color3.fromHSV((hue+idx*0.15)%1,1,1) end
 end
-local function CreateCoilButton(Name,ColorData,EquipEffect,UnequipEffect)
+task.wait(0.05)
+end
+end)
+end
+end)
+Tool.Unequipped:Connect(function() Trail.Enabled=false Particles.Enabled=false rainbowActive=false UnequipEffect() end)
+end
+local function CreateCoilButton(Name,ColorData,EquipEffect,UnequipEffect,isRainbow)
 local Box=Instance.new("Frame")
 Box.Size=UDim2.new(1,0,0,65)
 Box.BackgroundColor3=ColorData.Dark
@@ -379,14 +402,14 @@ Button.Parent=Box
 Instance.new("UICorner",Button).CornerRadius=UDim.new(0,8)
 Button.MouseButton1Click:Connect(function()
 TweenService:Create(Header,TweenInfo.new(0.3),{BackgroundColor3=ColorData.Dark}):Play()
-CreateCoil(Name,ColorData,EquipEffect,UnequipEffect)
+CreateCoil(Name,ColorData,EquipEffect,UnequipEffect,isRainbow)
 Button.Text="OBTAINED"
 task.wait(1.5)
 Button.Text="Spawn"
 end)
 end
 CreateCoilButton("Speed Coil",COLORS.Red,function() if player.Character and player.Character:FindFirstChild("Humanoid") then player.Character.Humanoid.WalkSpeed=50 end end,function() if player.Character and player.Character:FindFirstChild("Humanoid") then player.Character.Humanoid.WalkSpeed=DEFAULT_SPEED end end)
-CreateCoilButton("Gravity Coil",COLORS.Blue,function() Workspace.Gravity=35 end,function() Workspace.Gravity=DEFAULT_GRAVITY end)
+CreateCoilButton("Gravity Coil 🌈",COLORS.Rainbow,function() Workspace.Gravity=35 end,function() Workspace.Gravity=DEFAULT_GRAVITY end,true)
 local regenActive=false
 CreateCoilButton("Regen Coil",COLORS.Green,function()
 regenActive=true
@@ -455,7 +478,372 @@ createBomb(2)
 print("Kudo Fake Bomb spawned!")
 ]==]
 SCRIPTS.recolorScope=[==[
-loadstring(game:HttpGet("COLE_AQUI_O_LINK_DO_RECOLOR_SCOPE"))()
+local Players=game:GetService("Players")
+local UserInputService=game:GetService("UserInputService")
+local player=Players.LocalPlayer
+local PlayerGui=player:WaitForChild("PlayerGui")
+local GUN_TOOL_NAME="Gun"
+local TARGET_NAME="GunDisplay"
+local RED_TEXTURE_ID="rbxassetid://84961185975751"
+local BLUE_TEXTURE_ID="rbxassetid://82435090032680"
+local PURPLE_TEXTURE_ID="rbxassetid://88934686234709"
+local VOIDSCOPE_TEXTURE_ID="rbxassetid://119603354495392"
+local ROSESCOPE_TEXTURE_ID="rbxassetid://102809990017058"
+local WHITESCOPE_TEXTURE_ID="rbxassetid://87412774611144"
+local RED_BEAM_COLOR=Color3.fromRGB(170,0,0)
+local BLUE_BEAM_COLOR=Color3.fromRGB(20,45,110)
+local PURPLE_BEAM_COLOR=Color3.fromRGB(115,35,170)
+local ROSESCOPE_BEAM_COLOR=Color3.fromRGB(255,105,180)
+local WHITE=Color3.fromRGB(255,255,255)
+local CURRENT_STYLE="Normal"
+local TEXTURE_ID=nil
+local BEAM_COLOR=nil
+local selectedGunDisplay=nil
+local equippedGun=nil
+local originalDisplayTextures={}
+local originalGunProperties={}
+local connectedTools={}
+local gunDescendantConnections={}
+local toolEffectConnections={}
+local Styles={{Name="Normal",Texture=nil,Beam=nil},{Name="RedScope",Texture=RED_TEXTURE_ID,Beam=RED_BEAM_COLOR},{Name="BlueScope",Texture=BLUE_TEXTURE_ID,Beam=BLUE_BEAM_COLOR},{Name="Purple",Texture=PURPLE_TEXTURE_ID,Beam=PURPLE_BEAM_COLOR},{Name="VoidScope",Texture=VOIDSCOPE_TEXTURE_ID,Beam=WHITE,VoidFade=true},{Name="Rosescope",Texture=ROSESCOPE_TEXTURE_ID,Beam=ROSESCOPE_BEAM_COLOR},{Name="WhiteScope",Texture=WHITESCOPE_TEXTURE_ID,Beam=WHITE},{Name="GhostScope",Texture=nil,Beam=WHITE,Ghost=true}}
+local FONT_STYLE=Enum.Font.FredokaOne
+pcall(function() FONT_STYLE=Font.fromName("MatchaMint") or Enum.Font.FredokaOne end)
+local TEXT_DARK_BLUE=Color3.fromRGB(15,30,60)
+local function saveGunOriginal(o,p) if not originalGunProperties[o] then originalGunProperties[o]={} end if originalGunProperties[o][p]==nil then originalGunProperties[o][p]=o[p] end end
+local function saveDisplayOriginal(o,p) if not originalDisplayTextures[o] then originalDisplayTextures[o]={} end if originalDisplayTextures[o][p]==nil then originalDisplayTextures[o][p]=o[p] end end
+local function applyEffectColor(o)
+if not o then return end
+if not (o:IsA("Beam") or o:IsA("Trail")) then return end
+saveGunOriginal(o,"Color")
+if CURRENT_STYLE=="GhostScope" then saveGunOriginal(o,"Transparency") o.Color=ColorSequence.new(WHITE) o.Transparency=NumberSequence.new(0.5)
+elseif CURRENT_STYLE=="VoidScope" then o.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(255,255,255)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(170,170,170)),ColorSequenceKeypoint.new(1,Color3.fromRGB(0,0,0))})
+elseif BEAM_COLOR then o.Color=ColorSequence.new(BEAM_COLOR) end
+end
+local function changeGunObject(o)
+if not equippedGun then return end
+if equippedGun.Name~=GUN_TOOL_NAME then return end
+if CURRENT_STYLE=="GhostScope" then
+if o:IsA("BasePart") then saveGunOriginal(o,"Color") saveGunOriginal(o,"Transparency") o.Color=WHITE o.Transparency=0.5 if o:IsA("MeshPart") then saveGunOriginal(o,"TextureID") o.TextureID="" end
+elseif o:IsA("SpecialMesh") then saveGunOriginal(o,"TextureId") o.TextureId="" local parent=o.Parent if parent and parent:IsA("BasePart") then saveGunOriginal(parent,"Color") saveGunOriginal(parent,"Transparency") parent.Color=WHITE parent.Transparency=0.5 end
+elseif o:IsA("Decal") or o:IsA("Texture") then saveGunOriginal(o,"Transparency") o.Transparency=1
+elseif o:IsA("Beam") or o:IsA("Trail") then saveGunOriginal(o,"Color") saveGunOriginal(o,"Transparency") o.Color=ColorSequence.new(WHITE) o.Transparency=NumberSequence.new(0.5) end
+return end
+if o:IsA("MeshPart") then saveGunOriginal(o,"TextureID") o.TextureID=TEXTURE_ID
+elseif o:IsA("SpecialMesh") then saveGunOriginal(o,"TextureId") o.TextureId=TEXTURE_ID
+elseif o:IsA("Decal") or o:IsA("Texture") then saveGunOriginal(o,"Texture") o.Texture=TEXTURE_ID
+elseif o:IsA("Beam") or o:IsA("Trail") then applyEffectColor(o) end
+end
+local function applyStyleToGun(tool)
+if not tool then return end
+if not tool:IsA("Tool") then return end
+if tool.Name~=GUN_TOOL_NAME then return end
+equippedGun=tool
+for _,o in ipairs(tool:GetDescendants()) do
+if CURRENT_STYLE=="GhostScope" then
+if o:IsA("BasePart") or o:IsA("SpecialMesh") or o:IsA("Decal") or o:IsA("Texture") or o:IsA("Beam") or o:IsA("Trail") then changeGunObject(o) end
+elseif o:IsA("MeshPart") or o:IsA("SpecialMesh") or o:IsA("Decal") or o:IsA("Texture") then changeGunObject(o)
+elseif o:IsA("Beam") or o:IsA("Trail") then applyEffectColor(o) end
+end
+end
+local function restoreGun(tool)
+if not tool then return end
+for o,props in pairs(originalGunProperties) do if o and o.Parent then for p,v in pairs(props) do pcall(function() o[p]=v end) end end end
+originalGunProperties={}
+if equippedGun==tool then equippedGun=nil end
+end
+local function restoreDisplay()
+for o,props in pairs(originalDisplayTextures) do if o and o.Parent then for p,v in pairs(props) do pcall(function() o[p]=v end) end end end
+originalDisplayTextures={}
+selectedGunDisplay=nil
+end
+local function getObjectPosition(o)
+if o:IsA("BasePart") then return o.Position end
+if o:IsA("Model") then local p=o.PrimaryPart or o:FindFirstChildWhichIsA("BasePart",true) if p then return p.Position end end
+if o:IsA("Tool") then local h=o:FindFirstChild("Handle",true) if h and h:IsA("BasePart") then return h.Position end end
+return nil
+end
+local function findNearestGunDisplay()
+local character=player.Character
+local root=character and character:FindFirstChild("HumanoidRootPart")
+if not root then return nil end
+local nearest,nearestDistance=nil,math.huge
+for _,o in ipairs(workspace:GetDescendants()) do
+if o.Name==TARGET_NAME then
+local pos=getObjectPosition(o)
+if pos then local d=(pos-root.Position).Magnitude if d<nearestDistance then nearestDistance=d nearest=o end end
+end
+end
+return nearest
+end
+local function changeDisplayTextures(root)
+if not root or not root.Parent then return end
+local function change(o,p,v) pcall(function() saveDisplayOriginal(o,p) o[p]=v end) end
+if CURRENT_STYLE=="GhostScope" then
+local function ghostObject(o)
+if o:IsA("BasePart") then change(o,"Color",WHITE) change(o,"Transparency",0.5) if o:IsA("MeshPart") then change(o,"TextureID","") end
+elseif o:IsA("SpecialMesh") then change(o,"TextureId","") local p=o.Parent if p and p:IsA("BasePart") then change(p,"Color",WHITE) change(p,"Transparency",0.5) end
+elseif o:IsA("Decal") or o:IsA("Texture") then change(o,"Transparency",1)
+elseif o:IsA("Beam") or o:IsA("Trail") then change(o,"Color",ColorSequence.new(WHITE)) change(o,"Transparency",NumberSequence.new(0.5)) end
+end
+ghostObject(root)
+for _,o in ipairs(root:GetDescendants()) do ghostObject(o) end
+return end
+if not TEXTURE_ID then return end
+local function changeTexture(o)
+if o:IsA("MeshPart") then change(o,"TextureID",TEXTURE_ID)
+elseif o:IsA("SpecialMesh") then change(o,"TextureId",TEXTURE_ID)
+elseif o:IsA("Decal") or o:IsA("Texture") then change(o,"Texture",TEXTURE_ID) end
+end
+changeTexture(root)
+for _,o in ipairs(root:GetDescendants()) do changeTexture(o) end
+end
+if PlayerGui:FindFirstChild("MatrixVoidPanel") then PlayerGui.MatrixVoidPanel:Destroy() end
+local screenGui=Instance.new("ScreenGui")
+screenGui.Name="MatrixVoidPanel"
+screenGui.ResetOnSpawn=false
+screenGui.Parent=PlayerGui
+local mainFrame=Instance.new("Frame")
+mainFrame.Size=UDim2.new(0,260,0,390)
+mainFrame.Position=UDim2.new(0.5,-130,0.4,-195)
+mainFrame.BackgroundColor3=Color3.fromRGB(115,175,215)
+mainFrame.BackgroundTransparency=0.25
+mainFrame.BorderSizePixel=0
+mainFrame.Active=true
+mainFrame.ClipsDescendants=true
+mainFrame.Parent=screenGui
+Instance.new("UICorner",mainFrame).CornerRadius=UDim.new(0,16)
+local mainStroke=Instance.new("UIStroke",mainFrame)
+mainStroke.Color=Color3.fromRGB(255,255,255)
+mainStroke.Thickness=2.5
+local titleBar=Instance.new("Frame")
+titleBar.Size=UDim2.new(1,0,0,35)
+titleBar.BackgroundTransparency=1
+titleBar.Active=true
+titleBar.Parent=mainFrame
+local titleLabel=Instance.new("TextLabel")
+titleLabel.Size=UDim2.new(1,-35,1,0)
+titleLabel.Position=UDim2.new(0,10,0,0)
+titleLabel.BackgroundTransparency=1
+titleLabel.Text="antonmvtwin • 28kxpehh & kywsam"
+titleLabel.TextColor3=TEXT_DARK_BLUE
+titleLabel.TextSize=13
+titleLabel.TextXAlignment=Enum.TextXAlignment.Left
+if typeof(FONT_STYLE)=="Font" then titleLabel.FontFace=FONT_STYLE else titleLabel.Font=FONT_STYLE end
+titleLabel.Parent=titleBar
+local minimizeBtn=Instance.new("TextButton")
+minimizeBtn.Size=UDim2.new(0,22,0,22)
+minimizeBtn.Position=UDim2.new(1,-28,0,6)
+minimizeBtn.BackgroundColor3=Color3.fromRGB(200,40,40)
+minimizeBtn.Text="-"
+minimizeBtn.TextColor3=Color3.fromRGB(255,255,255)
+minimizeBtn.TextSize=16
+minimizeBtn.BorderSizePixel=0
+minimizeBtn.Parent=titleBar
+Instance.new("UICorner",minimizeBtn).CornerRadius=UDim.new(1,0)
+local contentFrame=Instance.new("Frame")
+contentFrame.Size=UDim2.new(1,-24,1,-65)
+contentFrame.Position=UDim2.new(0,12,0,38)
+contentFrame.BackgroundTransparency=1
+contentFrame.Parent=mainFrame
+local listLayout=Instance.new("UIListLayout",contentFrame)
+listLayout.SortOrder=Enum.SortOrder.LayoutOrder
+listLayout.Padding=UDim.new(0,8)
+local function createButton(text)
+local btn=Instance.new("TextButton")
+btn.Size=UDim2.new(1,0,0,30)
+btn.BackgroundColor3=Color3.fromRGB(255,255,255)
+btn.BackgroundTransparency=0.4
+btn.Text=text
+btn.TextColor3=TEXT_DARK_BLUE
+btn.TextSize=12
+btn.BorderSizePixel=0
+if typeof(FONT_STYLE)=="Font" then btn.FontFace=FONT_STYLE else btn.Font=FONT_STYLE end
+Instance.new("UICorner",btn).CornerRadius=UDim.new(0,12)
+local s=Instance.new("UIStroke",btn)
+s.Color=Color3.fromRGB(255,255,255)
+s.Thickness=1.5
+return btn
+end
+local btnMatrix=createButton("MATRIXSCOPE: ON")
+btnMatrix.Parent=contentFrame
+local btnVoid=createButton("VOIDSCOPE: ON")
+btnVoid.Parent=contentFrame
+local texturesLabel=Instance.new("TextLabel")
+texturesLabel.Size=UDim2.new(1,0,0,18)
+texturesLabel.BackgroundTransparency=1
+texturesLabel.Text="TEXTURES"
+texturesLabel.TextColor3=TEXT_DARK_BLUE
+texturesLabel.TextSize=12
+if typeof(FONT_STYLE)=="Font" then texturesLabel.FontFace=FONT_STYLE else texturesLabel.Font=FONT_STYLE end
+texturesLabel.TextXAlignment=Enum.TextXAlignment.Left
+texturesLabel.Parent=contentFrame
+local scrollFrame=Instance.new("ScrollingFrame")
+scrollFrame.Size=UDim2.new(1,0,0,170)
+scrollFrame.BackgroundTransparency=1
+scrollFrame.BorderSizePixel=0
+scrollFrame.ScrollBarThickness=4
+scrollFrame.CanvasSize=UDim2.new(0,0,0,0)
+scrollFrame.Parent=contentFrame
+local scrollLayout=Instance.new("UIListLayout",scrollFrame)
+scrollLayout.SortOrder=Enum.SortOrder.LayoutOrder
+scrollLayout.Padding=UDim.new(0,6)
+scrollLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() scrollFrame.CanvasSize=UDim2.new(0,0,0,scrollLayout.AbsoluteContentSize.Y+5) end)
+local status=Instance.new("TextLabel")
+status.Size=UDim2.new(0,1,0,1)
+status.BackgroundTransparency=1
+status.TextTransparency=1
+status.Text="Ready."
+status.Parent=mainFrame
+local function selectStyle(styleName)
+local selectedStyle=nil
+for _,style in ipairs(Styles) do if style.Name==styleName then selectedStyle=style break end end
+if not selectedStyle then return end
+local gunToReapply=equippedGun
+restoreDisplay()
+if equippedGun then restoreGun(equippedGun) end
+CURRENT_STYLE=selectedStyle.Name
+TEXTURE_ID=selectedStyle.Texture
+BEAM_COLOR=selectedStyle.Beam
+if status then status.Text="Style: "..CURRENT_STYLE end
+if CURRENT_STYLE=="Normal" then return end
+local target=findNearestGunDisplay()
+if not target then return end
+selectedGunDisplay=target
+changeDisplayTextures(target)
+if CURRENT_STYLE=="GhostScope" and gunToReapply and gunToReapply.Parent then applyStyleToGun(gunToReapply) end
+end
+for index,style in ipairs(Styles) do
+local colorBtn=createButton(string.upper(style.Name))
+colorBtn.LayoutOrder=index
+colorBtn.MouseButton1Click:Connect(function() selectStyle(style.Name) end)
+colorBtn.Parent=scrollFrame
+end
+local footerLabel=Instance.new("TextLabel")
+footerLabel.Size=UDim2.new(1,0,0,20)
+footerLabel.Position=UDim2.new(0,0,1,-22)
+footerLabel.BackgroundTransparency=1
+footerLabel.Text="MADE BY ANTONMVTWIN & SAMMXQP2K"
+footerLabel.TextColor3=TEXT_DARK_BLUE
+footerLabel.TextSize=9
+if typeof(FONT_STYLE)=="Font" then footerLabel.FontFace=FONT_STYLE else footerLabel.Font=FONT_STYLE end
+footerLabel.Parent=mainFrame
+local ballBtn=Instance.new("TextButton")
+ballBtn.Size=UDim2.new(0,50,0,50)
+ballBtn.Position=mainFrame.Position
+ballBtn.BackgroundColor3=Color3.fromRGB(115,175,215)
+ballBtn.BackgroundTransparency=0.2
+ballBtn.Text="M&V"
+ballBtn.TextColor3=TEXT_DARK_BLUE
+ballBtn.TextSize=14
+ballBtn.Active=true
+ballBtn.Visible=false
+ballBtn.BorderSizePixel=0
+if typeof(FONT_STYLE)=="Font" then ballBtn.FontFace=FONT_STYLE else ballBtn.Font=FONT_STYLE end
+ballBtn.Parent=screenGui
+Instance.new("UICorner",ballBtn).CornerRadius=UDim.new(1,0)
+local ballStroke=Instance.new("UIStroke",ballBtn)
+ballStroke.Color=Color3.fromRGB(255,255,255)
+ballStroke.Thickness=2.5
+local function enableDrag(dragTarget,moveTarget)
+local draggingL=false
+local dragInput,dragStart,startPos
+local function update(input)
+local delta=input.Position-dragStart
+moveTarget.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)
+end
+dragTarget.InputBegan:Connect(function(input)
+if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
+draggingL=true
+dragStart=input.Position
+startPos=moveTarget.Position
+input.Changed:Connect(function() if input.UserInputState==Enum.UserInputState.End then draggingL=false end end)
+end
+end)
+dragTarget.InputChanged:Connect(function(input)
+if input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch then dragInput=input end
+end)
+UserInputService.InputChanged:Connect(function(input) if input==dragInput and draggingL then update(input) end end)
+end
+enableDrag(titleBar,mainFrame)
+enableDrag(ballBtn,ballBtn)
+local isDraggingBall=false
+ballBtn.InputBegan:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then isDraggingBall=false end end)
+ballBtn.InputChanged:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch then isDraggingBall=true end end)
+minimizeBtn.MouseButton1Click:Connect(function()
+ballBtn.Position=UDim2.new(mainFrame.Position.X.Scale,mainFrame.Position.X.Offset+(mainFrame.Size.X.Offset/2)-25,mainFrame.Position.Y.Scale,mainFrame.Position.Y.Offset+10)
+mainFrame.Visible=false
+ballBtn.Visible=true
+end)
+ballBtn.MouseButton1Up:Connect(function()
+if not isDraggingBall then
+mainFrame.Position=UDim2.new(ballBtn.Position.X.Scale,ballBtn.Position.X.Offset-(mainFrame.Size.X.Offset/2)+25,ballBtn.Position.Y.Scale,ballBtn.Position.Y.Offset)
+ballBtn.Visible=false
+mainFrame.Visible=true
+end
+end)
+local function setupTool(tool)
+if not tool:IsA("Tool") then return end
+if tool.Name~=GUN_TOOL_NAME then return end
+if connectedTools[tool] then return end
+connectedTools[tool]=true
+toolEffectConnections[tool]={}
+local function prepareEffect(o)
+if not (o:IsA("Beam") or o:IsA("Trail")) then return end
+saveGunOriginal(o,"Color")
+saveGunOriginal(o,"Transparency")
+local connection=o:GetPropertyChangedSignal("Color"):Connect(function()
+if equippedGun~=tool then return end
+if CURRENT_STYLE=="Normal" then return end
+if not o.Parent then return end
+if CURRENT_STYLE=="GhostScope" then changeGunObject(o) else applyEffectColor(o) end
+end)
+table.insert(toolEffectConnections[tool],connection)
+if equippedGun==tool and CURRENT_STYLE~="Normal" then changeGunObject(o) end
+end
+for _,o in ipairs(tool:GetDescendants()) do prepareEffect(o) end
+gunDescendantConnections[tool]=tool.DescendantAdded:Connect(function(o)
+if o:IsA("Beam") or o:IsA("Trail") then prepareEffect(o) end
+if equippedGun==tool and CURRENT_STYLE~="Normal" then changeGunObject(o) end
+end)
+tool.Equipped:Connect(function()
+equippedGun=tool
+if CURRENT_STYLE~="Normal" then applyStyleToGun(tool) end
+end)
+tool.Unequipped:Connect(function() restoreGun(tool) end)
+tool.Destroying:Connect(function()
+connectedTools[tool]=nil
+if toolEffectConnections[tool] then for _,c in ipairs(toolEffectConnections[tool]) do c:Disconnect() end toolEffectConnections[tool]=nil end
+if gunDescendantConnections[tool] then gunDescendantConnections[tool]:Disconnect() gunDescendantConnections[tool]=nil end
+end)
+end
+local function setupCharacter(character)
+for _,o in ipairs(character:GetChildren()) do if o:IsA("Tool") then setupTool(o) end end
+character.ChildAdded:Connect(function(o) if o:IsA("Tool") then setupTool(o) end end)
+end
+local function setupBackpack()
+local backpack=player:WaitForChild("Backpack")
+for _,o in ipairs(backpack:GetChildren()) do if o:IsA("Tool") then setupTool(o) end end
+backpack.ChildAdded:Connect(function(o) if o:IsA("Tool") then setupTool(o) end end)
+end
+if player.Character then setupCharacter(player.Character) end
+player.CharacterAdded:Connect(function(character)
+equippedGun=nil
+originalGunProperties={}
+setupCharacter(character)
+end)
+setupBackpack()
+workspace.DescendantAdded:Connect(function(o)
+if o.Name~=TARGET_NAME then return end
+task.spawn(function()
+task.wait(0.15)
+if CURRENT_STYLE=="Normal" then return end
+local nearest=findNearestGunDisplay()
+if not nearest then return end
+selectedGunDisplay=nearest
+changeDisplayTextures(nearest)
+end)
+end)
+print("[antonmvtwin] Gun Customizer Loaded")
 ]==]
 local gui=Instance.new("ScreenGui")
 gui.Name="ccAdmMmvPanel"
@@ -464,7 +852,7 @@ gui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
 gui.Parent=playerGui
 local toggle=Instance.new("TextButton")
 toggle.Size=UDim2.new(0,55,0,55)
-toggle.Position=UDim2.new(0,20,0.5,0)
+toggle.Position=UDim2.new(0.5,-27,0.5,-27)
 toggle.BackgroundColor3=PINK
 toggle.Text="♡"
 toggle.Font=Enum.Font.GothamBold
@@ -702,7 +1090,7 @@ tabBtn.TextColor3=WHITE
 end)
 end
 buildPage("Water Bow ♡","Water Bow ♡","Crossbow of the Sea + water jump ♡","waterBow",1)
-buildPage("Coil Gears ♡","Coil Gears ♡","Sonic Coils with mini panel ♡","coilGears",2)
+buildPage("Coil Gears ♡","Coil Gears ♡","Sonic Coils with Rainbow Gravity ♡","coilGears",2)
 buildPage("Magic Carpet ♡","Magic Carpet ♡","Flying magic carpet ♡","magicCarpet",3)
 buildPage("Kudo Fake Bomb ♡","Kudo Fake Bomb ♡","Fake bombs that launch you up ♡","kudoFakeBomb",4)
 buildPage("Recolor Scope ♡","Recolor Scope ♡","Gun Customizer (antonmvtwin) ♡","recolorScope",5)
